@@ -154,17 +154,17 @@ func SubtestReadWriteMsgSync(t *testing.T, writer WriteCloser, reader ReadCloser
 			if err != nil {
 				if err == io.EOF {
 					if i < len(msg2) {
-						errs <- fmt.Errorf("failed to read all messages", len(msgs), i)
+						errs <- fmt.Errorf("failed to read all messages %d %d", len(msgs), i)
 					}
 					return
 				}
-				errs <- fmt.Errorf("unexpected error", err)
+				errs <- fmt.Errorf("unexpected error: %s", err)
 			}
 
 			mi := NBO.Uint32(msg2[:4])
 			msg1 := msgs[mi]
 			if !bytes.Equal(msg1, msg2) {
-				errs <- fmt.Errorf("message retrieved not equal\n", msg1, "\n\n", msg2)
+				errs <- fmt.Errorf("message retrieved not equal\n%s\n\n%s", msg1, msg2)
 			}
 		}(i)
 	}
