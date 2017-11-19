@@ -7,7 +7,7 @@ This is a simple package that helps read and write length-delimited slices. It's
 ### Reading
 
 ```go
-import "github.com/jbenet/msgio"
+import "github.com/libp2p/go-msgio"
 rdr := ... // some reader from a wire
 mrdr := msgio.NewReader(rdr)
 
@@ -24,7 +24,7 @@ for {
 ### Writing
 
 ```go
-import "github.com/jbenet/msgio"
+import "github.com/libp2p/go-msgio"
 wtr := genReader()
 mwtr := msgio.NewWriter(wtr)
 
@@ -40,7 +40,7 @@ for {
 ### Duplex
 
 ```go
-import "github.com/jbenet/msgio"
+import "github.com/libp2p/go-msgio"
 rw := genReadWriter()
 mrw := msgio.NewReadWriter(rw)
 
@@ -61,7 +61,7 @@ for {
 ### Channels
 
 ```go
-import "github.com/jbenet/msgio"
+import "github.com/libp2p/go-msgio"
 rw := genReadWriter()
 rch := msgio.NewReadChannel(rw)
 wch := msgio.NewWriteChannel(rw)

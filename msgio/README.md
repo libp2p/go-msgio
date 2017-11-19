@@ -5,7 +5,7 @@ Conveniently output msgio headers.
 ## Install
 
 ```
-go get github.com/jbenet/go-msgio/msgio
+go get github.com/libp2p/go-msgio/msgio
 ```
 
 ## Usage
