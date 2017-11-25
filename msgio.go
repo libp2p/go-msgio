@@ -129,7 +129,7 @@ type reader struct {
 // will read whole messages at a time (using the length). Assumes an equivalent
 // writer on the other side.
 func NewReader(r io.Reader) ReadCloser {
-	return NewReaderWithPool(r, &mpool.ByteSlicePool)
+	return NewReaderWithPool(r, mpool.ByteSlicePool)
 }
 
 // NewReaderWithPool wraps an io.Reader with a msgio framed reader. The msgio.Reader

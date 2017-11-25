@@ -75,7 +75,7 @@ type varintReader struct {
 // Varints read according to https://golang.org/pkg/encoding/binary/#ReadUvarint
 // Assumes an equivalent writer on the other side.
 func NewVarintReader(r io.Reader) ReadCloser {
-	return NewVarintReaderWithPool(r, &mpool.ByteSlicePool)
+	return NewVarintReaderWithPool(r, mpool.ByteSlicePool)
 }
 
 // NewVarintReaderWithPool wraps an io.Reader with a varint msgio framed reader.
