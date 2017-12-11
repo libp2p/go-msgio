@@ -105,9 +105,6 @@ func (s *writer) WriteMsg(msg []byte) (err error) {
 }
 
 func (s *writer) Close() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if c, ok := s.W.(io.Closer); ok {
 		return c.Close()
 	}
@@ -216,9 +213,6 @@ func (s *reader) ReleaseMsg(msg []byte) {
 }
 
 func (s *reader) Close() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if c, ok := s.R.(io.Closer); ok {
 		return c.Close()
 	}
