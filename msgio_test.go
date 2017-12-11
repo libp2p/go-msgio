@@ -33,6 +33,20 @@ func TestReadWriteMsgSync(t *testing.T) {
 	SubtestReadWriteMsgSync(t, writer, reader)
 }
 
+func TestReadClose(t *testing.T) {
+	r, w := io.Pipe()
+	writer := NewWriter(w)
+	reader := NewReader(r)
+	SubtestReadClose(t, writer, reader)
+}
+
+func TestWriteClose(t *testing.T) {
+	r, w := io.Pipe()
+	writer := NewWriter(w)
+	reader := NewReader(r)
+	SubtestWriteClose(t, writer, reader)
+}
+
 func SubtestReadWrite(t *testing.T, writer WriteCloser, reader ReadCloser) {
 	msgs := [1000][]byte{}
 
@@ -197,11 +211,8 @@ func TestBadSizes(t *testing.T) {
 	_ = msg
 }
 
-func TestReadClose(t *testing.T) {
-	r, w := io.Pipe()
-	writer := NewWriter(w)
+func SubtestReadClose(t *testing.T, writer WriteCloser, reader ReadCloser) {
 	defer writer.Close()
-	reader := NewReader(r)
 
 	buf := [10]byte{}
 	done := make(chan struct{})
@@ -217,10 +228,7 @@ func TestReadClose(t *testing.T) {
 	<-done
 }
 
-func TestWriteClose(t *testing.T) {
-	r, w := io.Pipe()
-	writer := NewWriter(w)
-	reader := NewReader(r)
+func SubtestWriteClose(t *testing.T, writer WriteCloser, reader ReadCloser) {
 	defer reader.Close()
 
 	buf := [10]byte{}
