@@ -49,9 +49,6 @@ func (s *varintWriter) WriteMsg(msg []byte) error {
 }
 
 func (s *varintWriter) Close() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if c, ok := s.W.(io.Closer); ok {
 		return c.Close()
 	}
@@ -162,9 +159,6 @@ func (s *varintReader) ReleaseMsg(msg []byte) {
 }
 
 func (s *varintReader) Close() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	if c, ok := s.R.(io.Closer); ok {
 		return c.Close()
 	}
