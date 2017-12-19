@@ -22,6 +22,7 @@ package mpool
 
 import (
 	"fmt"
+	"math/bits"
 	"sync"
 )
 
@@ -78,35 +79,19 @@ func (p *Pool) Put(length uint32, val interface{}) {
 }
 
 func nextPowerOfTwo(v uint32) uint32 {
-	// fmt.Printf("nextPowerOfTwo(%d) ", v)
-	v--
-	v |= v >> 1
-	v |= v >> 2
-	v |= v >> 4
-	v |= v >> 8
-	v |= v >> 16
-	v++
-
-	// fmt.Printf("-> %d", v)
-
-	i := uint32(0)
-	for ; v > 1; i++ {
-		v = v >> 1
+	if v == 0 {
+		return 0
 	}
-
-	// fmt.Printf("-> %d\n", i)
-	return i
+	return uint32(bits.Len32(v - 1))
 }
 
 func prevPowerOfTwo(num uint32) uint32 {
-	next := nextPowerOfTwo(num)
-	// fmt.Printf("prevPowerOfTwo(%d) next: %d", num, next)
-	switch {
-	case num == (1 << next): // num is a power of 2
-	case next == 0:
-	default:
-		next = next - 1 // smaller
+	if num == 0 {
+		return 0
 	}
-	// fmt.Printf(" = %d\n", next)
-	return next
+	next := uint32(bits.Len32(num - 1))
+	if num == (1 << next) {
+		return next
+	}
+	return next - 1
 }
