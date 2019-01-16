@@ -2,9 +2,11 @@ package msgio
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
+	str "strings"
 	"sync"
 	"testing"
 	"time"
@@ -45,6 +47,45 @@ func TestWriteClose(t *testing.T) {
 	writer := NewWriter(w)
 	reader := NewReader(r)
 	SubtestWriteClose(t, writer, reader)
+}
+
+type testIoReadWriter struct {
+	io.Reader
+	io.Writer
+}
+
+func TestReadWriterClose(t *testing.T) {
+	r, w := io.Pipe()
+	var rw ReadWriteCloser
+	rw = NewReadWriter(testIoReadWriter{r, w})
+	SubtestReaderWriterClose(t, rw)
+}
+
+func TestReadWriterCombine(t *testing.T) {
+	r, w := io.Pipe()
+	writer := NewWriter(w)
+	reader := NewReader(r)
+	rw := Combine(writer, reader)
+	rw.Close()
+}
+
+func TestMultiError(t *testing.T) {
+	emptyError := multiErr([]error{})
+	if emptyError.Error() != "no errors" {
+		t.Fatal("Expected no errors")
+	}
+
+	twoErrors := multiErr([]error{errors.New("one"), errors.New("two")})
+	if eStr := twoErrors.Error(); !str.Contains(eStr, "one") && !str.Contains(eStr, "two") {
+		t.Fatal("Expected error messages not included")
+	}
+}
+
+func TestShortBufferError(t *testing.T) {
+	buf := bytes.NewBuffer(nil)
+	writer := NewWriter(buf)
+	reader := NewReader(buf)
+	SubtestReadShortBuffer(t, writer, reader)
 }
 
 func SubtestReadWrite(t *testing.T, writer WriteCloser, reader ReadCloser) {
@@ -240,7 +281,47 @@ func SubtestWriteClose(t *testing.T, writer WriteCloser, reader ReadCloser) {
 	}()
 	n, err := writer.Write(buf[:])
 	if n != 0 || err == nil {
-		t.Error("expected to read nothing")
+		t.Error("expected to write nothing")
 	}
 	<-done
+}
+
+func SubtestReaderWriterClose(t *testing.T, rw ReadWriteCloser) {
+	buf := [10]byte{}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		time.Sleep(10 * time.Millisecond)
+		buf := [10]byte{}
+		rw.Read(buf[:])
+		rw.Close()
+	}()
+	n, err := rw.Write(buf[:])
+	if n != 10 || err != nil {
+		t.Error("Expected to write 10 bytes")
+	}
+	<-done
+}
+
+func SubtestReadShortBuffer(t *testing.T, writer WriteCloser, reader ReadCloser) {
+	defer reader.Close()
+	shortReadBuf := [1]byte{}
+	done := make(chan struct{})
+
+	go func() {
+		defer writer.Close()
+		defer close(done)
+		time.Sleep(10 * time.Millisecond)
+		largeWriteBuf := [10]byte{}
+		writer.Write(largeWriteBuf[:])
+	}()
+	<-done
+	n, _ := reader.NextMsgLen()
+	if n != 10 {
+		t.Fatal("Expected next message to have length of 10")
+	}
+	_, err := reader.Read(shortReadBuf[:])
+	if err != io.ErrShortBuffer {
+		t.Fatal("Expected short buffer error")
+	}
 }
