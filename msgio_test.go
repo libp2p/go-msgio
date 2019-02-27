@@ -10,8 +10,6 @@ import (
 	"sync"
 	"testing"
 	"time"
-
-	randbuf "github.com/jbenet/go-randbuf"
 )
 
 func TestReadWrite(t *testing.T) {
@@ -93,7 +91,7 @@ func SubtestReadWrite(t *testing.T, writer WriteCloser, reader ReadCloser) {
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := range msgs {
-		msgs[i] = randbuf.RandBuf(r, r.Intn(1000))
+		msgs[i] = randBuf(r, r.Intn(1000))
 		n, err := writer.Write(msgs[i])
 		if err != nil {
 			t.Fatal(err)
@@ -137,7 +135,7 @@ func SubtestReadWriteMsg(t *testing.T, writer WriteCloser, reader ReadCloser) {
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := range msgs {
-		msgs[i] = randbuf.RandBuf(r, r.Intn(1000))
+		msgs[i] = randBuf(r, r.Intn(1000))
 		err := writer.WriteMsg(msgs[i])
 		if err != nil {
 			t.Fatal(err)
@@ -176,7 +174,7 @@ func SubtestReadWriteMsgSync(t *testing.T, writer WriteCloser, reader ReadCloser
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := range msgs {
-		msgs[i] = randbuf.RandBuf(r, r.Intn(1000)+4)
+		msgs[i] = randBuf(r, r.Intn(1000)+4)
 		NBO.PutUint32(msgs[i][:4], uint32(i))
 	}
 

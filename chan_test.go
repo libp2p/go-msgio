@@ -2,12 +2,17 @@ package msgio
 
 import (
 	"bytes"
-	randbuf "github.com/jbenet/go-randbuf"
 	"io"
 	"math/rand"
 	"testing"
 	"time"
 )
+
+func randBuf(r *rand.Rand, size int) []byte {
+	buf := make([]byte, size)
+	_, _ = r.Read(buf)
+	return buf
+}
 
 func TestReadChan(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
@@ -17,7 +22,7 @@ func TestReadChan(t *testing.T) {
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := range msgs {
-		msgs[i] = randbuf.RandBuf(r, r.Intn(1000))
+		msgs[i] = randBuf(r, r.Intn(1000))
 		err := writer.WriteMsg(msgs[i])
 		if err != nil {
 			t.Fatal(err)
@@ -65,7 +70,7 @@ func TestWriteChan(t *testing.T) {
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := range msgs {
-		msgs[i] = randbuf.RandBuf(r, r.Intn(1000))
+		msgs[i] = randBuf(r, r.Intn(1000))
 
 		select {
 		case err := <-wchan.ErrChan:
