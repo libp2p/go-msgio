@@ -76,13 +76,20 @@ type ReadWriteCloser interface {
 type writer struct {
 	W io.Writer
 
+	pool *pool.BufferPool
 	lock sync.Mutex
 }
 
 // NewWriter wraps an io.Writer with a msgio framed writer. The msgio.Writer
 // will write the length prefix of every message written.
 func NewWriter(w io.Writer) WriteCloser {
-	return &writer{W: w}
+	return NewWriterWithPool(w, pool.GlobalPool)
+}
+
+// NewWriterWithPool is identical to NewWriter but allows the user to pass a
+// custom buffer pool.
+func NewWriterWithPool(w io.Writer, p *pool.BufferPool) WriteCloser {
+	return &writer{W: w, pool: p}
 }
 
 func (s *writer) Write(msg []byte) (int, error) {
@@ -96,10 +103,13 @@ func (s *writer) Write(msg []byte) (int, error) {
 func (s *writer) WriteMsg(msg []byte) (err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	if err := WriteLen(s.W, len(msg)); err != nil {
-		return err
-	}
-	_, err = s.W.Write(msg)
+
+	buf := s.pool.Get(len(msg) + lengthSize)
+	NBO.PutUint32(buf, uint32(len(msg)))
+	copy(buf[lengthSize:], msg)
+	_, err = s.W.Write(buf)
+	s.pool.Put(buf)
+
 	return err
 }
 
