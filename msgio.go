@@ -76,13 +76,13 @@ type ReadWriteCloser interface {
 type writer struct {
 	W io.Writer
 
-	lock sync.Locker
+	lock sync.Mutex
 }
 
 // NewWriter wraps an io.Writer with a msgio framed writer. The msgio.Writer
 // will write the length prefix of every message written.
 func NewWriter(w io.Writer) WriteCloser {
-	return &writer{W: w, lock: new(sync.Mutex)}
+	return &writer{W: w}
 }
 
 func (s *writer) Write(msg []byte) (int, error) {
@@ -114,10 +114,10 @@ func (s *writer) Close() error {
 type reader struct {
 	R io.Reader
 
-	lbuf []byte
+	lbuf [lengthSize]byte
 	next int
 	pool *pool.BufferPool
-	lock sync.Locker
+	lock sync.Mutex
 	max  int // the maximal message size (in bytes) this reader handles
 }
 
@@ -137,10 +137,8 @@ func NewReaderWithPool(r io.Reader, p *pool.BufferPool) ReadCloser {
 	}
 	return &reader{
 		R:    r,
-		lbuf: make([]byte, lengthSize),
 		next: -1,
 		pool: p,
-		lock: new(sync.Mutex),
 		max:  defaultMaxSize,
 	}
 }
@@ -156,7 +154,7 @@ func (s *reader) NextMsgLen() (int, error) {
 
 func (s *reader) nextMsgLen() (int, error) {
 	if s.next == -1 {
-		n, err := ReadLen(s.R, s.lbuf)
+		n, err := ReadLen(s.R, s.lbuf[:])
 		if err != nil {
 			return 0, err
 		}
