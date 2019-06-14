@@ -138,10 +138,21 @@ func NewReader(r io.Reader) ReadCloser {
 	return NewReaderWithPool(r, pool.GlobalPool)
 }
 
-// NewReaderWithPool wraps an io.Reader with a msgio framed reader. The msgio.Reader
-// will read whole messages at a time (using the length). Assumes an equivalent
-// writer on the other side.  It uses a given pool.BufferPool
+// NewReaderSize is equivalent to NewReader but allows one to
+// specify a max message size.
+func NewReaderSize(r io.Reader, maxMessageSize int) ReadCloser {
+	return NewReaderSizeWithPool(r, maxMessageSize, pool.GlobalPool)
+}
+
+// NewReaderWithPool is the same as NewReader but allows one to specify a buffer
+// pool.
 func NewReaderWithPool(r io.Reader, p *pool.BufferPool) ReadCloser {
+	return NewReaderSizeWithPool(r, defaultMaxSize, p)
+}
+
+// NewReaderWithPool is the same as NewReader but allows one to specify a buffer
+// pool and a max message size.
+func NewReaderSizeWithPool(r io.Reader, maxMessageSize int, p *pool.BufferPool) ReadCloser {
 	if p == nil {
 		panic("nil pool")
 	}
@@ -149,7 +160,7 @@ func NewReaderWithPool(r io.Reader, p *pool.BufferPool) ReadCloser {
 		R:    r,
 		next: -1,
 		pool: p,
-		max:  defaultMaxSize,
+		max:  maxMessageSize,
 	}
 }
 

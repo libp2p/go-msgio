@@ -74,15 +74,24 @@ type varintReader struct {
 // Varints read according to https://golang.org/pkg/encoding/binary/#ReadUvarint
 // Assumes an equivalent writer on the other side.
 func NewVarintReader(r io.Reader) ReadCloser {
-	return NewVarintReaderWithPool(r, pool.GlobalPool)
+	return NewVarintReaderSize(r, defaultMaxSize)
 }
 
-// NewVarintReaderWithPool wraps an io.Reader with a varint msgio framed reader.
-// The msgio.Reader will read whole messages at a time (using the length).
-// Varints read according to https://golang.org/pkg/encoding/binary/#ReadUvarint
-// Assumes an equivalent writer on the other side. It uses a given
-// pool.BufferPool.
+// NewVarintReaderSize is equivalent to NewVarintReader but allows one to
+// specify a max message size.
+func NewVarintReaderSize(r io.Reader, maxMessageSize int) ReadCloser {
+	return NewVarintReaderSizeWithPool(r, maxMessageSize, pool.GlobalPool)
+}
+
+// NewVarintReaderWithPool is the same as NewVarintReader but allows one to
+// specify a buffer pool.
 func NewVarintReaderWithPool(r io.Reader, p *pool.BufferPool) ReadCloser {
+	return NewVarintReaderSizeWithPool(r, defaultMaxSize, p)
+}
+
+// NewVarintReaderWithPool is the same as NewVarintReader but allows one to
+// specify a buffer pool and a max message size.
+func NewVarintReaderSizeWithPool(r io.Reader, maxMessageSize int, p *pool.BufferPool) ReadCloser {
 	if p == nil {
 		panic("nil pool")
 	}
@@ -91,7 +100,7 @@ func NewVarintReaderWithPool(r io.Reader, p *pool.BufferPool) ReadCloser {
 		br:   &simpleByteReader{R: r},
 		next: -1,
 		pool: p,
-		max:  defaultMaxSize,
+		max:  maxMessageSize,
 	}
 }
 
