@@ -12,16 +12,21 @@ import (
 type varintWriter struct {
 	W io.Writer
 
-	lbuf [binary.MaxVarintLen64]byte // for encoding varints
-	lock sync.Mutex                  // for threadsafe writes
+	pool *pool.BufferPool
+	lock sync.Mutex // for threadsafe writes
 }
 
 // NewVarintWriter wraps an io.Writer with a varint msgio framed writer.
 // The msgio.Writer will write the length prefix of every message written
 // as a varint, using https://golang.org/pkg/encoding/binary/#PutUvarint
 func NewVarintWriter(w io.Writer) WriteCloser {
+	return NewVarintWriterWithPool(w, pool.GlobalPool)
+}
+
+func NewVarintWriterWithPool(w io.Writer, p *pool.BufferPool) WriteCloser {
 	return &varintWriter{
-		W: w,
+		pool: p,
+		W:    w,
 	}
 }
 
@@ -37,12 +42,12 @@ func (s *varintWriter) WriteMsg(msg []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	length := uint64(len(msg))
-	n := binary.PutUvarint(s.lbuf[:], length)
-	if _, err := s.W.Write(s.lbuf[:n]); err != nil {
-		return err
-	}
-	_, err := s.W.Write(msg)
+	buf := s.pool.Get(len(msg) + binary.MaxVarintLen64)
+	n := binary.PutUvarint(buf, uint64(len(msg)))
+	n += copy(buf[n:], msg)
+	_, err := s.W.Write(buf[:n])
+	s.pool.Put(buf)
+
 	return err
 }
 
