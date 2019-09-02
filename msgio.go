@@ -199,6 +199,9 @@ func (s *reader) Read(msg []byte) (int, error) {
 	}
 
 	read, err := io.ReadFull(s.R, msg[:length])
+	if err != nil {
+		return 0, err
+	}
 	if read < length {
 		s.next = length - read // we only partially consumed the message.
 	} else {
@@ -227,6 +230,9 @@ func (s *reader) ReadMsg() ([]byte, error) {
 
 	msg := s.pool.Get(length)
 	read, err := io.ReadFull(s.R, msg)
+	if err != nil {
+		return nil, err
+	}
 	if read < length {
 		s.next = length - read // we only partially consumed the message.
 	} else {
