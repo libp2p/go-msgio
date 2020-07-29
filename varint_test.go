@@ -5,6 +5,8 @@ import (
 	"encoding/binary"
 	"io"
 	"testing"
+
+	"github.com/multiformats/go-varint"
 )
 
 func TestVarintReadWrite(t *testing.T) {
@@ -46,7 +48,7 @@ func SubtestVarintWrite(t *testing.T, msg []byte) {
 	bb := buf.Bytes()
 
 	sbr := simpleByteReader{R: buf}
-	length, err := binary.ReadUvarint(&sbr)
+	length, err := varint.ReadUvarint(&sbr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +59,7 @@ func SubtestVarintWrite(t *testing.T, msg []byte) {
 	}
 
 	lbuf := make([]byte, binary.MaxVarintLen64)
-	n := binary.PutUvarint(lbuf, length)
+	n := varint.PutUvarint(lbuf, length)
 
 	bblen := int(length) + n
 	t.Logf("checking wrote (%d + %d) bytes", length, n)
