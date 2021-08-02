@@ -12,6 +12,12 @@ import (
 	"time"
 )
 
+func randBuf(r *rand.Rand, size int) []byte {
+	buf := make([]byte, size)
+	_, _ = r.Read(buf)
+	return buf
+}
+
 func TestReadWrite(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 	writer := NewWriter(buf)
