@@ -60,8 +60,7 @@ type testIoReadWriter struct {
 
 func TestReadWriterClose(t *testing.T) {
 	r, w := io.Pipe()
-	var rw ReadWriteCloser
-	rw = NewReadWriter(testIoReadWriter{r, w})
+	rw := NewReadWriter(testIoReadWriter{r, w})
 	SubtestReaderWriterClose(t, rw)
 }
 

@@ -22,4 +22,7 @@ func TestLimitWriter(t *testing.T) {
 		t.Fatal("Expected to write 3 bytes with no errors")
 	}
 	err = writer.Flush()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
