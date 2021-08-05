@@ -12,6 +12,12 @@ import (
 	"time"
 )
 
+func randBuf(r *rand.Rand, size int) []byte {
+	buf := make([]byte, size)
+	_, _ = r.Read(buf)
+	return buf
+}
+
 func TestReadWrite(t *testing.T) {
 	buf := bytes.NewBuffer(nil)
 	writer := NewWriter(buf)
@@ -54,8 +60,7 @@ type testIoReadWriter struct {
 
 func TestReadWriterClose(t *testing.T) {
 	r, w := io.Pipe()
-	var rw ReadWriteCloser
-	rw = NewReadWriter(testIoReadWriter{r, w})
+	rw := NewReadWriter(testIoReadWriter{r, w})
 	SubtestReaderWriterClose(t, rw)
 }
 
