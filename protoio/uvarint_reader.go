@@ -36,6 +36,8 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
+	"runtime/debug"
 
 	"github.com/gogo/protobuf/proto"
 
@@ -60,6 +62,7 @@ func NewDelimitedReader(r io.Reader, maxSize int) ReadCloser {
 func (ur *uvarintReader) ReadMsg(msg proto.Message) (err error) {
 	defer func() {
 		if rerr := recover(); rerr != nil {
+			fmt.Fprintf(os.Stderr, "caught panic: %s\n%s\n", rerr, debug.Stack())
 			err = fmt.Errorf("panic reading message: %s", rerr)
 		}
 	}()
