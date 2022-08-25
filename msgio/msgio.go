@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -94,7 +93,7 @@ func header(w io.Writer, size int) error {
 }
 
 func wrap(w io.Writer, r io.Reader) error {
-	buf, err := ioutil.ReadAll(r)
+	buf, err := io.ReadAll(r)
 	if err != nil {
 		return err
 	}
