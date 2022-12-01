@@ -59,6 +59,14 @@ func NewDelimitedReader(r io.Reader, maxSize int) ReadCloser {
 	return &uvarintReader{bufio.NewReader(r), nil, maxSize, closer}
 }
 
+func NewDelimitedReaderWithSizedBuffer(r io.Reader, maxSize int) ReadCloser {
+	var closer io.Closer
+	if c, ok := r.(io.Closer); ok {
+		closer = c
+	}
+	return &uvarintReader{bufio.NewReaderSize(r, maxSize), nil, maxSize, closer}
+}
+
 func (ur *uvarintReader) ReadMsg(msg proto.Message) (err error) {
 	defer func() {
 		if rerr := recover(); rerr != nil {
