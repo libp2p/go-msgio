@@ -59,7 +59,9 @@ func NewDelimitedReader(r io.Reader, maxSize int) ReadCloser {
 	return &uvarintReader{bufio.NewReader(r), nil, maxSize, closer}
 }
 
-func NewDelimitedReaderWithSizedBuffer(r io.Reader, maxSize int) ReadCloser {
+// NewDelimitedReaderWithSize creates a protoio ReadCloser with a bufio.Reader
+// sized to `maxSize`
+func NewDelimitedReaderWithSize(r io.Reader, maxSize int) ReadCloser {
 	var closer io.Closer
 	if c, ok := r.(io.Closer); ok {
 		closer = c
