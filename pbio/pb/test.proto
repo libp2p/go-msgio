@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package test.pb;
+
+message TestRecord {
+    uint32 uint32 = 1;
+    uint64 uint64 = 2;
+    bytes bytes = 3;
+    string string = 4;
+    int32 int32 = 5;
+    int64 int64 = 6;
+}
