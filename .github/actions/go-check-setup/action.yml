@@ -1,0 +1,9 @@
+runs:
+  using: "composite"
+  steps:
+    - name: Install Protobuf compiler
+      shell: bash
+      # Running staticcheck causes some code to be generated that import github.com/libp2p/go-msgio/protoio,
+      # which is now deprecated, which then causes staticcheck to fail.
+      # Dirty hack: remove the test file, so that the code is not generated in the first place.
+      run: git rm ./protoio/uvarint_test.go

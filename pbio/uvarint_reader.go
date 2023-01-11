@@ -30,44 +30,64 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Deprecated: GoGo Protobuf is deprecated and unmaintained.
-package protoio
+package pbio
 
 import (
+	"bufio"
+	"fmt"
 	"io"
+	"os"
+	"runtime/debug"
 
-	"github.com/gogo/protobuf/proto"
+	"google.golang.org/protobuf/proto"
+
+	"github.com/multiformats/go-varint"
 )
 
-type Writer interface {
-	WriteMsg(proto.Message) error
+type uvarintReader struct {
+	r       *bufio.Reader
+	buf     []byte
+	maxSize int
+	closer  io.Closer
 }
 
-type WriteCloser interface {
-	Writer
-	io.Closer
-}
-
-type Reader interface {
-	ReadMsg(msg proto.Message) error
-}
-
-type ReadCloser interface {
-	Reader
-	io.Closer
-}
-
-func getSize(v interface{}) (int, bool) {
-	if sz, ok := v.(interface {
-		Size() (n int)
-	}); ok {
-		return sz.Size(), true
-	} else if sz, ok := v.(interface {
-		ProtoSize() (n int)
-	}); ok {
-		return sz.ProtoSize(), true
-	} else {
-		return 0, false
+func NewDelimitedReader(r io.Reader, maxSize int) ReadCloser {
+	var closer io.Closer
+	if c, ok := r.(io.Closer); ok {
+		closer = c
 	}
+	return &uvarintReader{bufio.NewReader(r), nil, maxSize, closer}
+}
+
+func (ur *uvarintReader) ReadMsg(msg proto.Message) (err error) {
+	defer func() {
+		if rerr := recover(); rerr != nil {
+			fmt.Fprintf(os.Stderr, "caught panic: %s\n%s\n", rerr, debug.Stack())
+			err = fmt.Errorf("panic reading message: %s", rerr)
+		}
+	}()
+
+	length64, err := varint.ReadUvarint(ur.r)
+	if err != nil {
+		return err
+	}
+	length := int(length64)
+	if length < 0 || length > ur.maxSize {
+		return io.ErrShortBuffer
+	}
+	if len(ur.buf) < length {
+		ur.buf = make([]byte, length)
+	}
+	buf := ur.buf[:length]
+	if _, err := io.ReadFull(ur.r, buf); err != nil {
+		return err
+	}
+	return proto.Unmarshal(buf, msg)
+}
+
+func (ur *uvarintReader) Close() error {
+	if ur.closer != nil {
+		return ur.closer.Close()
+	}
+	return nil
 }

@@ -30,44 +30,74 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Deprecated: GoGo Protobuf is deprecated and unmaintained.
-package protoio
+package pbio
 
 import (
+	"fmt"
 	"io"
+	"os"
+	"runtime/debug"
 
-	"github.com/gogo/protobuf/proto"
+	"google.golang.org/protobuf/proto"
+
+	"github.com/multiformats/go-varint"
 )
 
-type Writer interface {
-	WriteMsg(proto.Message) error
+type uvarintWriter struct {
+	w      io.Writer
+	lenBuf []byte
+	buffer []byte
 }
 
-type WriteCloser interface {
-	Writer
-	io.Closer
+func NewDelimitedWriter(w io.Writer) WriteCloser {
+	return &uvarintWriter{w, make([]byte, varint.MaxLenUvarint63), nil}
 }
 
-type Reader interface {
-	ReadMsg(msg proto.Message) error
-}
+func (uw *uvarintWriter) WriteMsg(msg proto.Message) (err error) {
+	defer func() {
+		if rerr := recover(); rerr != nil {
+			fmt.Fprintf(os.Stderr, "caught panic: %s\n%s\n", rerr, debug.Stack())
+			err = fmt.Errorf("panic reading message: %s", rerr)
+		}
+	}()
 
-type ReadCloser interface {
-	Reader
-	io.Closer
-}
-
-func getSize(v interface{}) (int, bool) {
-	if sz, ok := v.(interface {
-		Size() (n int)
+	var data []byte
+	if m, ok := msg.(interface {
+		MarshalTo(data []byte) (n int, err error)
 	}); ok {
-		return sz.Size(), true
-	} else if sz, ok := v.(interface {
-		ProtoSize() (n int)
-	}); ok {
-		return sz.ProtoSize(), true
-	} else {
-		return 0, false
+		n, ok := getSize(m)
+		if ok {
+			if n+varint.MaxLenUvarint63 >= len(uw.buffer) {
+				uw.buffer = make([]byte, n+varint.MaxLenUvarint63)
+			}
+			lenOff := varint.PutUvarint(uw.buffer, uint64(n))
+			_, err = m.MarshalTo(uw.buffer[lenOff:])
+			if err != nil {
+				return err
+			}
+			_, err = uw.w.Write(uw.buffer[:lenOff+n])
+			return err
+		}
 	}
+
+	// fallback
+	data, err = proto.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	length := uint64(len(data))
+	n := varint.PutUvarint(uw.lenBuf, length)
+	_, err = uw.w.Write(uw.lenBuf[:n])
+	if err != nil {
+		return err
+	}
+	_, err = uw.w.Write(data)
+	return err
+}
+
+func (uw *uvarintWriter) Close() error {
+	if closer, ok := uw.w.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
 }
