@@ -34,6 +34,7 @@ package pbio_test
 
 import (
 	"bytes"
+	crand "crypto/rand"
 	"fmt"
 	"io"
 	"math/rand"
@@ -91,7 +92,7 @@ func randomString(l int) string {
 // randomProtobuf returns a *pb.TestRecord protobuf filled with random values
 func randomProtobuf() *pb.TestRecord {
 	b := make([]byte, rand.Intn(100))
-	rand.Read(b)
+	crand.Read(b)
 	return &pb.TestRecord{
 		Uint64:  rand.Uint64(),
 		Uint32:  rand.Uint32(),
