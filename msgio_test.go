@@ -6,10 +6,15 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	str "strings"
+	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/libp2p/go-msgio/pbio/pb"
+	"github.com/libp2p/go-msgio/protoio"
+	"github.com/multiformats/go-varint"
+	"google.golang.org/protobuf/proto"
 )
 
 func randBuf(r *rand.Rand, size int) []byte {
@@ -79,7 +84,7 @@ func TestMultiError(t *testing.T) {
 	}
 
 	twoErrors := multiErr([]error{errors.New("one"), errors.New("two")})
-	if eStr := twoErrors.Error(); !str.Contains(eStr, "one") && !str.Contains(eStr, "two") {
+	if eStr := twoErrors.Error(); !strings.Contains(eStr, "one") && !strings.Contains(eStr, "two") {
 		t.Fatal("Expected error messages not included")
 	}
 }
@@ -326,5 +331,47 @@ func SubtestReadShortBuffer(t *testing.T, writer WriteCloser, reader ReadCloser)
 	_, err := reader.Read(shortReadBuf[:])
 	if err != io.ErrShortBuffer {
 		t.Fatal("Expected short buffer error")
+	}
+}
+
+func TestHandleProtoGeneratedByGoogleProtobufInProtoio(t *testing.T) {
+	record := &pb.TestRecord{
+		Uint32:  42,
+		Uint64:  84,
+		Bytes:   []byte("test bytes"),
+		String_: "test string",
+		Int32:   -42,
+		Int64:   -84,
+	}
+
+	recordBytes, err := proto.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []string{"read", "write"} {
+		t.Run(tc, func(t *testing.T) {
+			var buf bytes.Buffer
+			readRecord := &pb.TestRecord{}
+			switch tc {
+			case "read":
+				buf.Write(varint.ToUvarint(uint64(len(recordBytes))))
+				buf.Write(recordBytes)
+
+				reader := protoio.NewDelimitedReader(&buf, 1024)
+				defer reader.Close()
+				err = reader.ReadMsg(readRecord)
+			case "write":
+				writer := protoio.NewDelimitedWriter(&buf)
+				err = writer.WriteMsg(record)
+			}
+			if err == nil {
+				t.Fatal("expected error")
+			}
+			expectedError := "google Protobuf message passed into a GoGo Protobuf"
+			if !strings.Contains(err.Error(), expectedError) {
+				t.Fatalf("expected error to contain '%s'", expectedError)
+			}
+		})
 	}
 }
