@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-msgio/pbio/pb"
-	//lint:ignore SA1019
+	//lint:ignore SA1019 We are testing better errors when using the deprecated protoio package
 	"github.com/libp2p/go-msgio/protoio"
 	"github.com/multiformats/go-varint"
 	"google.golang.org/protobuf/proto"
