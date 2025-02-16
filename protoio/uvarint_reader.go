@@ -34,6 +34,7 @@ package protoio
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -82,7 +83,23 @@ func (ur *uvarintReader) ReadMsg(msg proto.Message) (err error) {
 	if _, err := io.ReadFull(ur.r, buf); err != nil {
 		return err
 	}
-	return proto.Unmarshal(buf, msg)
+
+	// Hoist up gogo's proto.Unmarshal logic so we can also check if this is a google protobuf message
+	msg.Reset()
+	if u, ok := msg.(interface {
+		XXX_Unmarshal([]byte) error
+	}); ok {
+		return u.XXX_Unmarshal(buf)
+	} else if u, ok := msg.(interface {
+		Unmarshal([]byte) error
+	}); ok {
+		return u.Unmarshal(buf)
+	} else if isGoogleProtobufMsg(msg) {
+		return errors.New("google Protobuf message passed into a GoGo Protobuf reader. Use github.com/libp2p/go-msgio/pbio instead of github.com/gogo/protobuf/proto")
+	}
+
+	// Fallback to GoGo's proto.Unmarshal around this buffer
+	return proto.NewBuffer(buf).Unmarshal(msg)
 }
 
 func (ur *uvarintReader) Close() error {
