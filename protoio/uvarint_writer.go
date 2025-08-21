@@ -33,6 +33,7 @@
 package protoio
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -78,6 +79,10 @@ func (uw *uvarintWriter) WriteMsg(msg proto.Message) (err error) {
 			_, err = uw.w.Write(uw.buffer[:lenOff+n])
 			return err
 		}
+	}
+
+	if isGoogleProtobufMsg(msg) {
+		return errors.New("google Protobuf message passed into a GoGo Protobuf writer. Use github.com/libp2p/go-msgio/pbio instead of github.com/gogo/protobuf/proto")
 	}
 
 	// fallback
